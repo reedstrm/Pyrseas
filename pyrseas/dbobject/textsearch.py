@@ -51,10 +51,10 @@ class TSConfigurationDict(DbObjectDict):
     query = \
         """SELECT nc.nspname AS schema, cfgname AS name, rolname AS owner,
                   np.nspname || '.' || prsname AS parser,
-                  obj_description(c.oid, 'pg_ts_config') AS description
-           FROM pg_ts_config c
+                  obj_description(c.oid, 'pg_catalog.pg_ts_config') AS description
+           FROM pg_catalog.pg_ts_config c
                 JOIN pg_roles r ON (r.oid = cfgowner)
-                JOIN pg_ts_parser p ON (cfgparser = p.oid)
+                JOIN pg_catalog.pg_ts_parser p ON (cfgparser = p.oid)
                 JOIN pg_namespace nc ON (cfgnamespace = nc.oid)
                 JOIN pg_namespace np ON (prsnamespace = np.oid)
            WHERE (nc.nspname != 'pg_catalog'
@@ -151,8 +151,8 @@ class TSDictionaryDict(DbObjectDict):
     query = \
         """SELECT nspname AS schema, dictname AS name, rolname AS owner,
                   tmplname AS template, dictinitoption AS options,
-                  obj_description(d.oid, 'pg_ts_dict') AS description
-           FROM pg_ts_dict d JOIN pg_ts_template t ON (dicttemplate = t.oid)
+                  obj_description(d.oid, 'pg_catalog.pg_ts_dict') AS description
+           FROM pg_catalog.pg_ts_dict d JOIN pg_catalog.pg_ts_template t ON (dicttemplate = t.oid)
                 JOIN pg_roles r ON (r.oid = dictowner)
                 JOIN pg_namespace n ON (dictnamespace = n.oid)
            WHERE (nspname != 'pg_catalog' AND nspname != 'information_schema')
@@ -251,8 +251,8 @@ class TSParserDict(DbObjectDict):
                   prsstart::regproc AS start, prstoken::regproc AS gettoken,
                   prsend::regproc AS end, prslextype::regproc AS lextypes,
                   prsheadline::regproc AS headline,
-                  obj_description(p.oid, 'pg_ts_parser') AS description
-           FROM pg_ts_parser p
+                  obj_description(p.oid, 'pg_catalog.pg_ts_parser') AS description
+           FROM pg_catalog.pg_ts_parser p
                 JOIN pg_namespace n ON (prsnamespace = n.oid)
            WHERE (nspname != 'pg_catalog' AND nspname != 'information_schema')
            ORDER BY nspname, prsname"""
@@ -346,8 +346,8 @@ class TSTemplateDict(DbObjectDict):
     query = \
         """SELECT nspname AS schema, tmplname AS name,
                   tmplinit::regproc AS init, tmpllexize::regproc AS lexize,
-                  obj_description(p.oid, 'pg_ts_template') AS description
-           FROM pg_ts_template p
+                  obj_description(p.oid, 'pg_catalog.pg_ts_template') AS description
+           FROM pg_catalog.pg_ts_template p
                 JOIN pg_namespace n ON (tmplnamespace = n.oid)
            WHERE (nspname != 'pg_catalog' AND nspname != 'information_schema')
            ORDER BY nspname, tmplname"""
