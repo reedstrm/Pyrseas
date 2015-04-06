@@ -52,19 +52,15 @@ class Column(DbSchemaObject):
                 stmt += ' DEFAULT ' + self.default
         if hasattr(self, 'collation') and self.collation != 'default':
             stmt += ' COLLATE "%s"' % self.collation
-        return (stmt, '' if not hasattr(self, 'description')
-                else self.comment())
+        return (stmt, '' if self.description is None else self.comment())
 
     def add_privs(self):
         """Generate SQL statements to grant privileges on new column
 
         :return: list of SQL statements
         """
-        stmts = []
-        if hasattr(self, 'privileges'):
-            for priv in self.privileges:
-                stmts.append(add_grant(self._table, priv, self.name))
-        return stmts
+        return [add_grant(self._table, priv, self.name)
+                for priv in self.privileges]
 
     def diff_privileges(self, incol):
         """Generate SQL statements to grant or revoke privileges
@@ -72,12 +68,8 @@ class Column(DbSchemaObject):
         :param incol: a YAML map defining the input column
         :return: list of SQL statements
         """
-        stmts = []
-        currprivs = self.privileges if hasattr(self, 'privileges') else {}
-        newprivs = incol.privileges if hasattr(incol, 'privileges') else {}
-        stmts.append(diff_privs(self._table, currprivs, incol._table, newprivs,
-                                self.name))
-        return stmts
+        return [diff_privs(self._table, self.privileges, incol._table,
+                           incol.privileges, self.name)]
 
     def comment(self):
         """Return a SQL COMMENT statement for the column
@@ -103,7 +95,7 @@ class Column(DbSchemaObject):
         else:
             raise TypeError("Cannot determine type of %s", self.name)
         return "ALTER %s %s DROP %s %s" % (comptype, compname, objtype,
-                                           self.name)
+                                           quote_id(self.name))
 
     def rename(self, newname):
         """Return SQL statement to RENAME the column
@@ -162,8 +154,11 @@ class Column(DbSchemaObject):
         # check DEFAULTs
         if not hasattr(self, 'default') and hasattr(incol, 'default'):
             stmts.append(base + "SET DEFAULT %s" % incol.default)
-        if hasattr(self, 'default') and not hasattr(incol, 'default'):
-            stmts.append(base + "DROP DEFAULT")
+        if hasattr(self, 'default'):
+            if not hasattr(incol, 'default'):
+                stmts.append(base + "DROP DEFAULT")
+            elif self.default != incol.default:
+                stmts.append(base + "SET DEFAULT %s" % incol.default)
         # check STATISTICS
         if hasattr(self, 'statistics'):
             if self.statistics == -1 and (
@@ -224,8 +219,6 @@ class ColumnDict(DbObjectDict):
         if self.dbconn.version < 90100:
             self.query = QUERY_PRE91
         for col in self.fetch():
-            if hasattr(col, 'privileges'):
-                col.privileges = col.privileges.split(',')
             sch, tbl = col.key()
             if (sch, tbl) not in self:
                 self[(sch, tbl)] = []
@@ -249,8 +242,8 @@ class ColumnDict(DbObjectDict):
                     arg = {'type': incol[key]}
                 col = Column(schema=table.schema, table=table.name, name=key,
                              **arg)
-                if hasattr(col, 'privileges'):
-                    if not hasattr(table, 'owner'):
+                if len(col.privileges) > 0:
+                    if table.owner is None:
                         raise ValueError("Column '%s.%s' has privileges but "
                                          "no owner information" % (
                                          table.name, key))
